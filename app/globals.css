@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+@theme {
+  --color-night: #080E1C;
+  --color-primary: #FF8236;
+  --color-primary-dark: #cc5a18;
+  --color-mortar: #1e1c1a;
+  --color-cave: #2a2218;
+  --color-clearing: #f0f7e4;
+  --color-forest: #2d5016;
+  --color-forest-dark: #1a3a0a;
+  --color-earth: #8b6f47;
+  --color-charcoal: #2d2d2d;
+  --color-gold: #FFB800;
+  --font-heading: "Bricolage Grotesque", sans-serif;
+}
+
+@keyframes campfire-flicker {
+  0%, 100% { opacity: 1; transform: scaleY(1) scaleX(1); }
+  25%       { opacity: .9; transform: scaleY(1.06) scaleX(.95); }
+  50%       { opacity: 1; transform: scaleY(.92) scaleX(1.04); }
+  75%       { opacity: .85; transform: scaleY(1.04) scaleX(.97); }
+}
+@keyframes torch-flicker {
+  0%,100%{ opacity:1; transform:scaleY(1) scaleX(1); }
+  33%    { opacity:.85; transform:scaleY(1.08) scaleX(.92); }
+  66%    { opacity:.95; transform:scaleY(.94) scaleX(1.05); }
+}
+@keyframes firefly {
+  0%,100%{ opacity:0; transform:translateY(0); }
+  20%    { opacity:1; }
+  50%    { opacity:.5; transform:translateY(-15px); }
+  80%    { opacity:.8; transform:translateY(-5px); }
+}
+@keyframes sway {
+  0%,100%{ transform:rotate(0); }
+  50%    { transform:rotate(3deg); }
+}
+@keyframes ember-rise {
+  0%  { opacity:0; transform:translateY(0) scale(1); }
+  20% { opacity:.8; }
+  80% { opacity:.3; transform:translateY(-200px) scale(.5); }
+  100%{ opacity:0; transform:translateY(-300px) scale(0); }
+}
+@keyframes twinkle {
+  0%,100%{ opacity:.2; }
+  50%    { opacity:1; }
+}
+@keyframes bob {
+  0%,100%{ transform:translateY(0); }
+  50%    { transform:translateY(6px); }
+}
+@keyframes chat-pulse {
+  0%,100%{ transform:scale(1); opacity:.7; }
+  50%    { transform:scale(1.15); opacity:1; }
+}
+@keyframes treasure-glow {
+  0%,100%{ opacity:.4; }
+  50%    { opacity:.8; }
+}
+@keyframes moon-float {
+  0%,100%{ transform:translateY(0); }
+  50%    { transform:translateY(-5px); }
+}
+
+.campfire-flame-1 { animation: campfire-flicker 1.8s ease-in-out infinite; }
+.campfire-flame-2 { animation: campfire-flicker 1.5s ease-in-out .15s infinite; }
+.campfire-flame-3 { animation: campfire-flicker 1.3s ease-in-out .3s infinite; }
+.campfire-flame-4 { animation: campfire-flicker 1.1s ease-in-out .45s infinite; }
+
+.torch-flame-1 { animation: torch-flicker 2s ease-in-out infinite; }
+.torch-flame-2 { animation: torch-flicker 1.8s ease-in-out .2s infinite; }
+.torch-flame-3 { animation: torch-flicker 1.5s ease-in-out .4s infinite; }
+.torch-flame-4 { animation: torch-flicker 2s ease-in-out .1s infinite; }
+.torch-flame-5 { animation: torch-flicker 1.8s ease-in-out .3s infinite; }
+.torch-flame-6 { animation: torch-flicker 1.5s ease-in-out .5s infinite; }
+
+.firefly { animation: firefly 4s ease-in-out infinite; }
+.firefly-d0 { animation-delay: 0s; }
+.firefly-d1 { animation-delay: .8s; }
+.firefly-d2 { animation-delay: 1.6s; }
+.firefly-d3 { animation-delay: 2.4s; }
+.firefly-d4 { animation-delay: 3.2s; }
+.firefly-d5 { animation-delay: .4s; }
+.firefly-d6 { animation-delay: 1.2s; }
+
+.vine-group { cursor: pointer; transition: transform .3s ease; }
+.treasure-glow { animation: treasure-glow 2s ease-in-out infinite; }
+.cave-bg { background-color: var(--color-cave); }
+.treasure-map-bg { background: linear-gradient(145deg, #d4b896, #c8a87a); }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Tailwind color utilities needed */
+.text-primary { color: #FF8236; }
+.text-earth   { color: #8b6f47; }
+.text-forest  { color: #2d5016; }
+.bg-night     { background-color: #080E1C; }
+.bg-cave      { background-color: #2a2218; }
+.border-white\/12 { border-color: rgba(255,255,255,0.12); }
+.border-white\/18 { border-color: rgba(255,255,255,0.18); }
