@@ -177,7 +177,7 @@ export default function TrailMap({ active, onSelect, experiences, nodeYs }: { ac
   }
 
   return (
-    <div ref={wrapRef} className="relative" style={{ aspectRatio:'.67' }} onClick={handleClick}>
+    <div ref={wrapRef} className="relative aspect-[0.67] lg:aspect-auto lg:h-full min-h-[420px]" onClick={handleClick}>
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
     </div>
   )

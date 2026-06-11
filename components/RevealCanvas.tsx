@@ -89,6 +89,12 @@ export default function RevealCanvas({ imgSrc }: { imgSrc: string }) {
 
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return
+    // Reduced motion: skip the WebGL brush-reveal loop entirely and show a
+    // restful default cursor. The base <img> underneath remains visible.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      canvas.style.cursor = 'default'
+      return
+    }
     const gl = canvas.getContext('webgl', { antialias: true, alpha: true, premultipliedAlpha: false })
     if (!gl) return
     const v1 = mkShader(gl, gl.VERTEX_SHADER, VS)!

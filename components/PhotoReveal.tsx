@@ -120,12 +120,17 @@ export default function PhotoReveal({ revealSrc, offsetY = 0 }: { revealSrc: str
     const onUp    = () => { isDown = false }
     const onLeave = () => { isDown = false; restoring = true; restoreFrames = 0 }
 
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
     const img = new Image()
     img.onload = () => {
       coverImg = img
       resize()
       ro = new ResizeObserver(resize)
       ro.observe(canvas)
+      // Reduced motion: leave the static cover in place, drop the brush cursor,
+      // and skip the auto-demo scratch + rAF loop.
+      if (reduced) { canvas.style.cursor = 'default'; return }
       canvas.addEventListener('mousedown',  onDown)
       canvas.addEventListener('mousemove',  onMove)
       canvas.addEventListener('mouseup',    onUp)

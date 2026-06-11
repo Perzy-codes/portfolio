@@ -1,6 +1,9 @@
 'use client'
 import { useEffect, useRef } from 'react'
 
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
 export default function HeroScene() {
   const starRef = useRef<HTMLCanvasElement>(null)
   const eyesRef = useRef<HTMLCanvasElement>(null)
@@ -17,6 +20,14 @@ export default function HeroScene() {
       x: Math.random(), y: Math.random() * .62,
       r: Math.random() * 1.2 + .2, a: Math.random(), da: (Math.random() - .5) * .003
     }))
+    // Reduced motion: paint a single static starfield, skip the animation loop.
+    if (prefersReducedMotion()) {
+      stars.forEach(s => {
+        ctx.beginPath(); ctx.arc(s.x * c.width, s.y * c.height, s.r, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(255,252,240,${s.a})`; ctx.fill()
+      })
+      return () => window.removeEventListener('resize', resize)
+    }
     let raf: number
     const draw = () => {
       ctx.clearRect(0, 0, c.width, c.height)
@@ -36,6 +47,7 @@ export default function HeroScene() {
   useEffect(() => {
     const c = eyesRef.current, h = heroRef.current
     if (!c || !h) return
+    if (prefersReducedMotion()) return  // skip the interactive eye-glow loop
     const resize = () => { const r = h.getBoundingClientRect(); c.width = r.width; c.height = r.height * .32 }
     resize(); window.addEventListener('resize', resize)
     const ctx = c.getContext('2d')!

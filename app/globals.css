@@ -62,6 +62,15 @@
   0%,100%{ transform:translateY(0); }
   50%    { transform:translateY(-5px); }
 }
+@keyframes legendary-glow {
+  0%,100%{ box-shadow:0 0 0 1px rgba(255,184,0,.5), 0 0 28px rgba(255,184,0,.18), inset 0 0 40px rgba(255,184,0,.04); }
+  50%    { box-shadow:0 0 0 1px rgba(255,184,0,.85), 0 0 52px rgba(255,184,0,.34), inset 0 0 60px rgba(255,184,0,.09); }
+}
+@keyframes legendary-sheen {
+  0%   { transform:translateX(-120%) skewX(-18deg); }
+  100% { transform:translateX(320%) skewX(-18deg); }
+}
+.legendary-card { animation: legendary-glow 3.2s ease-in-out infinite; }
 
 .campfire-flame-1 { animation: campfire-flicker 1.8s ease-in-out infinite; }
 .campfire-flame-2 { animation: campfire-flicker 1.5s ease-in-out .15s infinite; }
@@ -92,6 +101,28 @@
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Visible keyboard focus states on all interactive elements */
+a:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-primary, #FF8236);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respect reduced-motion: drop decorative CSS animations & transitions */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .firefly, .campfire-flame-1, .campfire-flame-2, .campfire-flame-3, .campfire-flame-4,
+  .torch-flame-1, .torch-flame-2, .torch-flame-3, .torch-flame-4, .torch-flame-5, .torch-flame-6,
+  .legendary-card { animation: none !important; }
 }
 
 /* Tailwind color utilities needed */

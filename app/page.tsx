@@ -7,15 +7,76 @@ import TiltCard from '@/components/TiltCard'
 import TrailMap from '@/components/TrailMap'
 import PhotoReveal from '@/components/PhotoReveal'
 import ChatBot from '@/components/ChatBot'
+import RecruiterView from '@/components/RecruiterView'
 import { experiences, achievements, projects, skills, socialLinks } from '@/lib/data'
 
 
 // Experiences shown as cards (excludes the "What's next?" destination node)
 const cardExps = experiences.filter(e => e.id !== '?')
 
+// Featured (legendary) project rendered separately from the grid
+const featuredProject = projects.find(p => p.featured)
+const gridProjects = projects.filter(p => !p.featured)
+
+// Rarity system: encodes real signal. Legendary = live product with users,
+// Epic = published/awarded, Rare = end-to-end build.
+const RARITY: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  legendary: { label: 'Legendary', color: '#FFB800', bg: 'rgba(255,184,0,.12)',  border: 'rgba(255,184,0,.55)' },
+  epic:      { label: 'Epic',      color: '#C084FC', bg: 'rgba(192,132,252,.12)', border: 'rgba(192,132,252,.5)' },
+  rare:      { label: 'Rare',      color: '#60A5FA', bg: 'rgba(96,165,250,.12)',  border: 'rgba(96,165,250,.5)' },
+}
+
+function RarityTag({ rarity }: { rarity: string }) {
+  const r = RARITY[rarity] ?? RARITY.rare
+  return (
+    <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-[.14em] px-2 py-0.5 rounded-full"
+      style={{ color: r.color, background: r.bg, border: `1px solid ${r.border}` }}>
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: r.color }} />
+      {r.label}
+    </span>
+  )
+}
+
+// Counts up to `end` once the element scrolls into view.
+function CountUp({ end, duration = 1400 }: { end: number; duration?: number }) {
+  const [val, setVal] = useState(0)
+  const ref = useRef<HTMLSpanElement>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    let raf = 0
+    const io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return
+      io.disconnect()
+      const start = performance.now()
+      const tick = (now: number) => {
+        const p = Math.min(1, (now - start) / duration)
+        const eased = 1 - Math.pow(1 - p, 3)
+        setVal(Math.round(end * eased))
+        if (p < 1) raf = requestAnimationFrame(tick)
+      }
+      raf = requestAnimationFrame(tick)
+    }, { threshold: 0.4 })
+    io.observe(el)
+    return () => { io.disconnect(); cancelAnimationFrame(raf) }
+  }, [end, duration])
+  return <span ref={ref}>{val}</span>
+}
+
 export default function Home() {
   const [activeExp, setActiveExp] = useState(0)
   const [, setChatOpen] = useState(false)
+  const [recruiterMode, setRecruiterMode] = useState(false)
+
+  // Restore the visitor's previous choice
+  useEffect(() => {
+    if (localStorage.getItem('recruiterMode') === '1') setRecruiterMode(true)
+  }, [])
+  const toggleMode = () => setRecruiterMode(m => {
+    const next = !m
+    localStorage.setItem('recruiterMode', next ? '1' : '0')
+    return next
+  })
   const cardRefs = useRef<(HTMLDivElement | null)[]>([])
   const cardsContainerRef = useRef<HTMLDivElement>(null)
   const [nodeYs, setNodeYs] = useState<number[]>([])
@@ -51,8 +112,34 @@ export default function Home() {
     if (ref) ref.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }, [activeExp])
 
+  // Header mode toggle: ⚔️ Adventure / 📄 Recruiter. Always visible, top-right.
+  const ModeToggle = (
+    <button
+      onClick={toggleMode}
+      aria-pressed={recruiterMode}
+      aria-label={recruiterMode ? 'Switch to Adventure mode' : 'Switch to Recruiter mode'}
+      className="fixed top-4 right-4 z-[60] flex items-center gap-1 rounded-full p-1 text-xs font-semibold shadow-lg backdrop-blur-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      style={recruiterMode
+        ? { background: '#fff', border: '1px solid rgba(0,0,0,.12)' }
+        : { background: 'rgba(20,16,10,.85)', border: '1px solid rgba(255,184,0,.35)' }}
+    >
+      <span className={`px-2.5 py-1 rounded-full transition-colors ${!recruiterMode ? 'bg-primary text-white' : 'text-neutral-500'}`}>⚔️ Adventure</span>
+      <span className={`px-2.5 py-1 rounded-full transition-colors ${recruiterMode ? 'bg-neutral-900 text-white' : 'text-amber-200/70'}`}>📄 Recruiter</span>
+    </button>
+  )
+
+  if (recruiterMode) {
+    return (
+      <>
+        {ModeToggle}
+        <RecruiterView />
+      </>
+    )
+  }
+
   return (
     <main>
+      {ModeToggle}
       <Nav onChatOpen={() => setChatOpen(true)} />
 
       {/* ── HERO ── */}
@@ -115,12 +202,15 @@ export default function Home() {
             {/* Bio card */}
             <div className="rounded-xl p-6 border border-white/12 flex flex-col gap-4" style={{ background:'#1e1c1a' }}>
               <p className="text-sm text-white/80 leading-relaxed">
-                Hi, I&apos;m <strong className="text-white">Pratham Dabas</strong>, a Data Scientist wrapping up my MS at{' '}
-                <span className="text-primary font-semibold">University of Maryland</span>, where I studied{' '}
-                <strong className="text-white">Data Science</strong>. I love building things and shipping real ML systems — from OTC derivatives post-trade analytics to RAG chatbots. I&apos;m a <strong className="text-white">practitioner</strong> who constantly experiments with new approaches.
+                Hi, I&apos;m <strong className="text-white">Pratham Dabas</strong>, a Data Scientist with an MS in Data Science from the{' '}
+                <span className="text-primary font-semibold">University of Maryland</span>{' '}
+                (<strong>GPA 3.83</strong>, Class of 2026) and <strong>4 years</strong> at S&amp;P Global shipping real ML systems: OTC derivatives post-trade analytics, RAG chatbots, and fine-tuned LLMs. I build, ship, and keep experimenting.
               </p>
-              <div className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 w-fit text-sm text-white/90" style={{ background:'rgba(255,130,54,.1)', border:'2px solid rgba(255,130,54,.25)' }}>
-                🎓 UMD · 2024–2026 · GPA 3.83
+              <div className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 max-w-full text-sm font-medium" style={{ background:'rgba(74,138,80,.12)', border:'2px solid rgba(74,138,80,.3)', color:'#6db870' }}>
+                🟢 Open to DS / ML / AI roles · New York City · Available July 2026
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 max-w-full text-sm text-white/90" style={{ background:'rgba(255,130,54,.1)', border:'2px solid rgba(255,130,54,.25)' }}>
+                🎓 UMD · MS Data Science · Class of 2026 · GPA <strong>3.83</strong>
               </div>
               <div className="h-px bg-white/10" />
               <div>
@@ -133,10 +223,10 @@ export default function Home() {
               <div>
                 <p className="text-[.6rem] text-primary uppercase tracking-[.22em] mb-3">Connect</p>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <a href="https://www.linkedin.com/in/prathamdabas" target="_blank" rel="noreferrer" className="w-9 h-9 rounded-full border border-white/18 flex items-center justify-center text-white/50 hover:text-primary hover:border-primary/50 transition-colors text-sm" style={{ background:'rgba(255,255,255,.06)' }}>in</a>
-                  <a href="mailto:pdabas@umd.edu" className="w-9 h-9 rounded-full border border-white/18 flex items-center justify-center text-white/50 hover:text-primary hover:border-primary/50 transition-colors" style={{ background:'rgba(255,255,255,.06)' }}>✉</a>
+                  <a href="https://www.linkedin.com/in/pratham-dabas-218007137/" target="_blank" rel="noreferrer" className="w-9 h-9 rounded-full border border-white/18 flex items-center justify-center text-white/50 hover:text-primary hover:border-primary/50 transition-colors text-sm" style={{ background:'rgba(255,255,255,.06)' }}>in</a>
+                  <a href="mailto:dabaspratham28@gmail.com" className="w-9 h-9 rounded-full border border-white/18 flex items-center justify-center text-white/50 hover:text-primary hover:border-primary/50 transition-colors" style={{ background:'rgba(255,255,255,.06)' }}>✉</a>
                   <a href="https://github.com/Perzy-codes" target="_blank" rel="noreferrer" className="w-9 h-9 rounded-full border border-white/18 flex items-center justify-center text-white/50 hover:text-primary hover:border-primary/50 transition-colors" style={{ background:'rgba(255,255,255,.06)' }}>⌥</a>
-                  <a href="#" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-primary hover:bg-primary/22 transition-colors" style={{ background:'rgba(255,130,54,.12)', border:'1px solid rgba(255,130,54,.35)' }}>⬇ Resume</a>
+                  <a href="https://drive.google.com/file/d/181aUxS9S7HsAcz2a4fgsVS-FZCl-apWu/view?usp=drive_link" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-primary hover:bg-primary/22 transition-colors" style={{ background:'rgba(255,130,54,.12)', border:'1px solid rgba(255,130,54,.35)' }}>⬇ Resume</a>
                 </div>
               </div>
               <p className="text-xs text-white/40 text-center">Loves DJing · Loves travelling · Loves exploring</p>
@@ -146,12 +236,12 @@ export default function Home() {
           {/* Achievements */}
           <FadeUp delay={.2} className="mt-16">
             <p className="text-[.6rem] text-primary uppercase tracking-[.28em] text-center mb-8">Achievements Unlocked</p>
-            <div className="flex flex-wrap justify-center gap-8">
+            <div className="flex flex-nowrap justify-start sm:justify-center gap-4 sm:gap-6 overflow-x-auto overflow-y-visible py-3 -mx-6 px-6 sm:mx-0 sm:px-0">
               {achievements.map(a => (
-                <div key={a.label} className="flex flex-col items-center gap-2 min-w-[110px] text-center cursor-default">
+                <div key={a.label} className="group flex flex-col items-center gap-2 w-[92px] flex-shrink-0 text-center cursor-default">
                   <div className="relative">
-                    <div className="relative w-[70px] h-[70px] rounded-full flex items-center justify-center border-2 transition-all duration-300 hover:scale-105 overflow-hidden" style={{ borderColor:a.color, background:`${a.color}1a` }}>
-                      <div className="absolute inset-0 rounded-full blur-xl opacity-50 hover:opacity-90 transition-opacity" style={{ background:a.color }} />
+                    <div className="relative w-[70px] h-[70px] rounded-full flex items-center justify-center border-2 transition-all duration-300 group-hover:scale-105 overflow-hidden" style={{ borderColor:a.color, background:`${a.color}1a` }}>
+                      <div className="absolute inset-0 rounded-full blur-xl opacity-50 group-hover:opacity-90 transition-opacity" style={{ background:a.color }} />
                       <div className="relative z-10 w-[50px] h-[50px] rounded-full flex items-center justify-center font-heading font-bold text-xs" style={{ background:'#1e1c1a', border:`2px solid ${a.color}`, color:a.color }}>{a.rank}</div>
                     </div>
                     <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3.5 h-1.5 rounded-b-full" style={{ background:a.color }} />
@@ -171,7 +261,7 @@ export default function Home() {
           <FadeUp><p className="text-xs text-[#5C4A3A] uppercase tracking-[.22em] mb-1">Journey So Far</p></FadeUp>
           <FadeUp delay={.1}><h2 className="font-heading font-bold text-5xl text-[#1a1208] mb-1">Experience</h2></FadeUp>
           <FadeUp delay={.15}><p className="text-[#5C4A3A]/70 italic mb-8">Every stop, a story. Every role, a relic.</p></FadeUp>
-          <FadeUp delay={.2} className="grid grid-cols-1 lg:grid-cols-[1fr_460px] gap-10 items-start w-full">
+          <FadeUp delay={.2} className="grid grid-cols-1 lg:grid-cols-[1fr_460px] gap-10 items-start lg:items-stretch w-full">
             <TrailMap active={activeExp} onSelect={setActiveExp} experiences={experiences} nodeYs={nodeYs} />
             <div ref={cardsContainerRef} className="min-w-0">
               <p className="text-[.6rem] text-[#8B6F47] uppercase tracking-[.2em] mb-3">Campsites Along the Trail</p>
@@ -214,17 +304,84 @@ export default function Home() {
           <FadeUp delay={.1}><h2 className="font-heading font-bold text-5xl text-white mb-2">Projects</h2></FadeUp>
           <FadeUp delay={.15}><p className="text-white/35 mb-14">things i built, studied, and shipped.</p></FadeUp>
 
+          {/* ── Featured Legendary card (Otto) ── */}
+          {featuredProject && (
+            <FadeUp className="mb-5">
+              <div
+                className="legendary-card group relative flex flex-col lg:flex-row gap-6 rounded-2xl p-6 sm:p-8 overflow-hidden transition-transform duration-300 hover:-translate-y-1"
+                style={{ background:'linear-gradient(135deg, rgba(255,184,0,.06), rgba(20,16,8,.6) 55%)', border:'1px solid rgba(255,184,0,.3)' }}>
+                {/* Stretched background link → main beta page (clicking anywhere on the card) */}
+                <a href={featuredProject.github} target="_blank" rel="noreferrer"
+                  aria-label="Open Otto private beta" className="absolute inset-0 z-[1]" />
+                {/* sheen sweep */}
+                <span className="pointer-events-none absolute inset-y-0 left-0 w-1/3 opacity-0 group-hover:opacity-100 z-[2]"
+                  style={{ background:'linear-gradient(90deg,transparent,rgba(255,184,0,.14),transparent)', animation:'legendary-sheen 1.1s ease-out' }} />
+
+                {/* Left: copy */}
+                <div className="relative flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-4">
+                    <RarityTag rarity="legendary" />
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-emerald-300/90">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" style={{ boxShadow:'0 0 6px #34d399' }} />
+                      Live product
+                    </span>
+                  </div>
+                  <h3 className="font-heading font-bold text-3xl sm:text-4xl text-white mb-1">{featuredProject.title}</h3>
+                  <p className="text-amber-300/90 text-sm font-medium mb-4">self-organizing AI notes</p>
+                  <p className="text-white/55 text-sm leading-relaxed mb-5 max-w-xl">{featuredProject.about}</p>
+                  <div className="flex flex-wrap gap-1.5 mb-5">
+                    {featuredProject.tech.map(t => (
+                      <span key={t} className="text-[10px] px-2 py-0.5 rounded-md text-amber-200/70"
+                        style={{ background:'rgba(255,184,0,.08)', border:'1px solid rgba(255,184,0,.2)' }}>{t}</span>
+                    ))}
+                  </div>
+                  <a href="https://otto-beige.vercel.app/login" target="_blank" rel="noreferrer"
+                    className="relative z-[3] inline-flex items-center gap-1.5 text-sm font-bold text-amber-400 hover:gap-2.5 transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400 rounded">
+                    Visit live product →
+                  </a>
+                </div>
+
+                {/* Right: live counter + stats */}
+                <div className="relative flex flex-col justify-center gap-3 lg:w-[230px] flex-shrink-0 rounded-xl p-5"
+                  style={{ background:'rgba(0,0,0,.28)', border:'1px solid rgba(255,184,0,.18)' }}>
+                  <div className="text-center">
+                    <p className="font-heading font-bold text-5xl text-amber-400 tracking-tight" style={{ textShadow:'0 0 24px rgba(255,184,0,.4)' }}>
+                      <CountUp end={231} />
+                    </p>
+                    <p className="text-amber-200/70 text-[11px] uppercase tracking-[.18em] mt-1">adventurers enrolled</p>
+                  </div>
+                  <div className="h-px bg-amber-500/15" />
+                  <div className="flex justify-between text-xs">
+                    <span className="text-white/45">Applied</span>
+                    <span className="text-white/80 font-semibold">YC S26</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-white/45">Gross margin</span>
+                    <span className="text-white/80 font-semibold">93% at 1K MAU</span>
+                  </div>
+                </div>
+              </div>
+            </FadeUp>
+          )}
+
+          {/* ── Rest of the grid ── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {projects.map((p, i) => (
+            {gridProjects.map((p, i) => (
               <FadeUp key={p.title} delay={i * .06}>
                 <a href={p.github} target="_blank" rel="noreferrer" className="group flex flex-col h-full rounded-2xl p-6 border border-white/8 hover:border-amber-500/30 transition-all duration-300 hover:-translate-y-1"
                   style={{ background:'rgba(255,255,255,0.03)' }}>
+                  {/* Rarity label */}
+                  <div className="mb-3"><RarityTag rarity={p.rarity} /></div>
+                  {/* Metric (leads) */}
+                  <p className="font-heading font-bold text-[1.7rem] leading-tight text-amber-400 mb-1 tracking-tight">{p.metric.split('·')[0].trim()}</p>
+                  {p.metric.includes('·') && (
+                    <p className="text-amber-400/55 text-[11px] font-medium mb-3">{p.metric.split('·').slice(1).join(' · ').trim()}</p>
+                  )}
                   {/* Title */}
-                  <h3 className="font-heading font-bold text-lg text-white mb-3 group-hover:text-amber-400 transition-colors">{p.title}</h3>
-                  {/* Achievement */}
-                  <p className="text-amber-400/80 text-xs font-medium leading-relaxed mb-2">{p.achievement}</p>
-                  {/* About */}
-                  <p className="text-white/45 text-xs leading-relaxed mb-5 flex-1">{p.about}</p>
+                  <h3 className="font-heading font-bold text-lg text-white mb-1.5 group-hover:text-amber-400 transition-colors">{p.title}</h3>
+                  {/* What it is */}
+                  <p className="text-white/55 text-xs leading-relaxed mb-1">{p.achievement}</p>
+                  <p className="text-white/35 text-xs leading-relaxed mb-5 flex-1">{p.about}</p>
                   {/* Tech tags */}
                   <div className="flex flex-wrap gap-1.5">
                     {p.tech.map(t => (
@@ -248,11 +405,12 @@ export default function Home() {
           <FadeUp delay={.1}><h2 className="font-heading font-bold text-5xl text-forest mb-2">Let&apos;s Connect</h2></FadeUp>
           <FadeUp delay={.15}><p className="text-forest/40 italic mb-10">take what you need, adventurer.</p></FadeUp>
           <FadeUp delay={.2}>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
               {[
-                { name:'Resume',    icon:'resume',    desc:'Full adventure log.',  action:'LOOT →',    color:'#FF8236', href:'https://drive.google.com/file/d/11b-t9Mw81spc9F-lN2mnN2yIyrxx1MMD/view?usp=sharing', first:true },
+                { name:'Resume',    icon:'resume',    desc:'Full adventure log.',  action:'LOOT →',    color:'#FF8236', href:'https://drive.google.com/file/d/181aUxS9S7HsAcz2a4fgsVS-FZCl-apWu/view?usp=drive_link', first:true },
                 { name:'LinkedIn',  icon:'linkedin',  desc:'Join the party.',      action:'CONNECT →', color:'#0A66C2', href:'https://www.linkedin.com/in/pratham-dabas-218007137/' },
                 { name:'Email',     icon:'email',     desc:'Send a raven.',        action:'MESSAGE →', color:'#FF8236', href:'mailto:dabaspratham28@gmail.com' },
+                { name:'Calendar',  icon:'calendar',  desc:'Book 15 min.',         action:'BOOK →',    color:'#4a8a50', href:'https://cal.com/pratham-dabas-98/15min' },
                 { name:'GitHub',    icon:'github',    desc:'See the arsenal.',     action:'EXPLORE →', color:'#1a2814', href:'https://github.com/Perzy-codes' },
                 { name:'Instagram', icon:'instagram', desc:'See the life.',        action:'FOLLOW →',  color:'#E1306C', href:'https://www.instagram.com/perzy89' },
               ].map(c => {
@@ -275,6 +433,11 @@ export default function Home() {
                   github: (
                     <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7">
                       <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+                    </svg>
+                  ),
+                  calendar: (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+                      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>
                     </svg>
                   ),
                   instagram: (
